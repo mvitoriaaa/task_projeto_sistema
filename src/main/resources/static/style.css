@@ -110,13 +110,21 @@ body { font-family: sans-serif; background: #f4f4f4; color: #333; }
   transition: background .2s, transform .1s;
   margin-top: .25rem;
 }
-.btn-login:hover  { background: #3498db; }
-.btn-login:active { transform: scale(.98); }
+.btn-login:hover              { background: #3498db; }
+.btn-login:active             { transform: scale(.98); }
+.btn-login:disabled           { background: #b2bec3; cursor: not-allowed; transform: none; }
+.btn-login:disabled:hover     { background: #b2bec3; }
 
-.login-erro {
+.login-bloqueado {
   margin-top: 1rem;
-  color: #e74c3c;
-  font-size: .9rem;
+  color: #c0392b;
+  font-size: .88rem;
+  font-weight: 600;
+  padding: .75rem 1rem;
+  background: #fdecea;
+  border-radius: 8px;
+  border: 1px solid #f5c6cb;
+  text-align: center;
   animation: fadeIn .3s ease;
 }
 .link-esqueci {
