@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema</title>
+  <link rel="stylesheet" href="style.css?v=3" />
+</head>
+<body>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Modal de confirmação -->
+  <div id="modal" class="modal-overlay oculto">
+    <div class="modal-box">
+      <p id="modal-texto"></p>
+      <div class="modal-acoes">
+        <button id="modal-sim" class="btn-deletar">Confirmar</button>
+        <button id="modal-nao" class="btn-cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <nav>
+    <div class="nav-logo">
+      <img src="logo_fabrica.jpg" width="36" height="36" alt="Logo" style="border-radius:8px;object-fit:cover;" />
+      <span>Sistema Industrial</span>
+    </div>
+    <button onclick="mostrarSecao('funcionarios', this)"         >Funcionários</button>
+    <button onclick="mostrarSecao('setores', this)"      class="ativo">Setores</button>
+    <button onclick="mostrarSecao('fabricas', this)"             >Tipos de Fábrica</button>
+    <button onclick="sair()" class="btn-sair">Sair</button>
+  </nav>
+
+  <!-- ── FUNCIONÁRIOS ─────────────────────────────────────────── -->
+  <section id="funcionarios" class="secao oculto">
+    <h1>Funcionários</h1>
+    <form id="form-funcionario">
+      <input type="hidden" id="func-id" />
+      <input type="text" id="func-nome"  placeholder="Nome"  />
+      <input type="text" id="func-cargo" placeholder="Cargo" />
+      <select id="func-status" onchange="toggleDemissao()">
+        <option value="ADMITIDO">Admitido</option>
+        <option value="DEMITIDO">Demitido</option>
+      </select>
+      <input type="date" id="func-admissao" title="Data de admissão" />
+      <input type="date" id="func-demissao" title="Data de demissão" class="oculto" />
+      <select id="func-setor">
+        <option value="">-- Setor --</option>
+      </select>
+      <button type="submit" class="btn-salvar">Salvar</button>
+    </form>
+
+    <div class="filtro-bar">
+      <select id="filtro-func-status" onchange="listarFuncionarios()">
+        <option value="">Todos os status</option>
+        <option value="ADMITIDO">Admitidos</option>
+        <option value="DEMITIDO">Demitidos</option>
+      </select>
+      <select id="filtro-func-setor" onchange="listarFuncionarios()">
+        <option value="">Todos os setores</option>
+      </select>
+    </div>
+
+    <table>
+      <thead><tr><th>ID</th><th>Nome</th><th>Cargo</th><th>Status</th><th>Setor</th><th>Admissão</th><th>Ações</th></tr></thead>
+      <tbody id="tabela-funcionarios"></tbody>
+    </table>
+    <p id="msg-funcionarios" class="vazio oculto">Nenhum funcionário encontrado.</p>
+  </section>
+
+  <!-- ── SETORES ──────────────────────────────────────────────── -->
+  <section id="setores" class="secao">
+    <h1>Setores</h1>
+    <form id="form-setor">
+      <input type="hidden" id="setor-id" />
+      <input type="text" id="setor-nome" placeholder="Nome do setor" />
+      <button type="submit" class="btn-salvar">Salvar</button>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
+      <tbody id="tabela-setores"></tbody>
+    </table>
+    <p id="msg-setores" class="vazio oculto">Nenhum setor cadastrado.</p>
+  </section>
+
+  <!-- ── TIPOS DE FÁBRICA ─────────────────────────────────────── -->
+  <section id="fabricas" class="secao oculto">
+    <h1>Tipos de Fábrica</h1>
+    <form id="form-fabrica">
+      <input type="hidden" id="fabrica-id" />
+      <input type="text" id="fabrica-nome"      placeholder="Nome"      />
+      <input type="text" id="fabrica-descricao" placeholder="Descrição" />
+      <button type="submit" class="btn-salvar">Salvar</button>
+    </form>
+    <table>
+      <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Ações</th></tr></thead>
+      <tbody id="tabela-fabricas"></tbody>
+    </table>
+    <p id="msg-fabricas" class="vazio oculto">Nenhum tipo de fábrica cadastrado.</p>
+  </section>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>
