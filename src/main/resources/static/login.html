@@ -25,10 +25,10 @@
     <div id="tela-login">
       <form id="form-login">
         <div class="input-group">
-          <input type="text" id="login-user" placeholder="Usuário" autocomplete="username" />
+          <input type="text" id="login-user" placeholder="Usuário" autocomplete="username" maxlength="50" />
         </div>
         <div class="input-group">
-          <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" />
+          <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" maxlength="50" />
           <button type="button" class="btn-olho" id="btn-olho" title="Mostrar/ocultar senha">
             <!-- olho aberto -->
             <svg id="icone-olho-aberto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -46,6 +46,9 @@
         <button type="submit" class="btn-login">Entrar</button>
       </form>
 
+      <p id="login-bloqueado" class="login-bloqueado oculto">
+        Acesso bloqueado. Limite de tentativas atingido.
+      </p>
       <p class="login-sub" style="margin-top:1.2rem;">
         <a href="#" id="link-esqueci" class="link-esqueci">Esqueci minha senha</a>
       </p>
@@ -71,13 +74,20 @@
     // Redireciona se já estiver logado
     if (sessionStorage.getItem('logado')) window.location.href = 'index.html';
 
-    // ── Toast ─────────────────────────────────────────────────────
+    // ── Constantes ────────────────────────────────────────────────
+    const MAX_TENTATIVAS = 5;
+    let tentativas = parseInt(sessionStorage.getItem('tentativas_login') || '0');
+
+    // ── Toast (ícones SVG, sem emoji) ─────────────────────────────
+    const SVG_ALERTA = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    const SVG_OK     = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+
     function mostrarToast(mensagem, tipo = 'erro') {
-      const icones = { erro: '⚠️', aviso: '⚠️', ok: '✅' };
+      const icone = tipo === 'ok' ? SVG_OK : SVG_ALERTA;
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       toast.className = `toast ${tipo}`;
-      toast.innerHTML = `<span class="toast-icone">${icones[tipo] ?? '⚠️'}</span>${mensagem}`;
+      toast.innerHTML = `<span class="toast-icone">${icone}</span>${mensagem}`;
       container.appendChild(toast);
       setTimeout(() => {
         toast.classList.add('saindo');
@@ -102,26 +112,83 @@
       input.focus();
     });
 
-    // ── Login ─────────────────────────────────────────────────────
+    // ── Referências ───────────────────────────────────────────────
     const inputUser = document.getElementById('login-user');
     const inputPass = document.getElementById('login-pass');
+    const btnLogin  = document.getElementById('form-login').querySelector('button[type="submit"]');
 
-    // Limpa borda vermelha ao digitar
-    inputUser.addEventListener('input', () => inputUser.classList.remove('erro'));
-    inputPass.addEventListener('input', () => inputPass.classList.remove('erro'));
+    // ── Botão desabilitado até 2 caracteres em cada campo ─────────
+    btnLogin.disabled = true;
 
+    function verificarCampos() {
+      btnLogin.disabled = !(inputUser.value.trim().length >= 2 && inputPass.value.length >= 2);
+    }
+
+    inputUser.addEventListener('input', () => { inputUser.classList.remove('erro'); verificarCampos(); });
+    inputPass.addEventListener('input', () => { inputPass.classList.remove('erro'); verificarCampos(); });
+
+    // ── Validação anti-injeção ────────────────────────────────────
+    const PADROES_INJECAO = [
+      /<[^>]*>/,          // tags HTML
+      /javascript:/i,     // protocolo JS
+      /on\w+\s*=/i,       // event handlers (onclick=, onload=...)
+      /--/,               // comentário SQL
+      /\/\*/,             // bloco SQL
+    ];
+
+    function temInjecao(valor) {
+      return PADROES_INJECAO.some(p => p.test(valor));
+    }
+
+    // ── Bloqueio de acesso ────────────────────────────────────────
+    function aplicarBloqueio() {
+      inputUser.disabled = true;
+      inputPass.disabled = true;
+      btnLogin.disabled  = true;
+      document.getElementById('btn-olho').disabled = true;
+      document.getElementById('login-bloqueado').classList.remove('oculto');
+      const linkEsqueci = document.getElementById('link-esqueci');
+      linkEsqueci.style.pointerEvents = 'none';
+      linkEsqueci.style.opacity = '.35';
+    }
+
+    // Aplica bloqueio imediatamente se já tiver atingido o limite
+    if (tentativas >= MAX_TENTATIVAS) aplicarBloqueio();
+
+    // ── Login ─────────────────────────────────────────────────────
     document.getElementById('form-login').addEventListener('submit', e => {
       e.preventDefault();
+
+      if (tentativas >= MAX_TENTATIVAS) return;
+
       const user = inputUser.value.trim();
       const pass = inputPass.value;
 
+      // Bloqueia entrada com padrões de injeção
+      if (temInjecao(user) || temInjecao(pass)) {
+        inputUser.classList.add('erro');
+        inputPass.classList.add('erro');
+        mostrarToast('Entrada inválida detectada.');
+        return;
+      }
+
       if (user === 'admin' && pass === 'admin') {
+        sessionStorage.removeItem('tentativas_login');
         sessionStorage.setItem('logado', 'true');
         window.location.href = 'index.html';
       } else {
+        tentativas++;
+        sessionStorage.setItem('tentativas_login', tentativas);
         inputUser.classList.add('erro');
         inputPass.classList.add('erro');
-        mostrarToast('Credenciais inválidas.');
+
+        const restantes = MAX_TENTATIVAS - tentativas;
+        if (restantes <= 0) {
+          aplicarBloqueio();
+          mostrarToast('Acesso bloqueado após 5 tentativas.');
+        } else {
+          mostrarToast(`Credenciais inválidas. ${restantes} tentativa(s) restante(s).`);
+        }
       }
     });
 
@@ -149,10 +216,10 @@
       e.preventDefault();
       const email = document.getElementById('rec-email').value.trim();
       if (!email) {
-        document.getElementById('rec-email').style.borderColor = '#e74c3c';
+        document.getElementById('rec-email').classList.add('erro');
         return;
       }
-      document.getElementById('rec-email').style.borderColor = '';
+      document.getElementById('rec-email').classList.remove('erro');
       document.getElementById('form-recuperacao').classList.add('oculto');
       document.getElementById('rec-sucesso').classList.remove('oculto');
     });
