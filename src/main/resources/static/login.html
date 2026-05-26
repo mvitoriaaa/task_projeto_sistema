@@ -8,11 +8,14 @@
 </head>
 <body class="login-body">
 
+  <!-- Toast container (reutiliza os estilos do app) -->
+  <div id="toast-container"></div>
+
   <div class="login-card">
 
     <!-- Logo -->
     <div class="logo-wrap">
-      <img src="logo_fabrica.jpg" width="96" height="96" alt="Logo" style="border-radius:16px;object-fit:cover;" />
+      <img src="logo_fabrica.jpg" width="130" height="130" alt="Logo" style="border-radius:20px;object-fit:cover;" />
     </div>
 
     <h1>Sistema Industrial</h1>
@@ -26,11 +29,23 @@
         </div>
         <div class="input-group">
           <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" />
+          <button type="button" class="btn-olho" id="btn-olho" title="Mostrar/ocultar senha">
+            <!-- olho aberto -->
+            <svg id="icone-olho-aberto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <!-- olho fechado -->
+            <svg id="icone-olho-fechado" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
         </div>
         <button type="submit" class="btn-login">Entrar</button>
       </form>
 
-      <p id="login-erro" class="login-erro oculto">Usuário ou senha inválidos</p>
       <p class="login-sub" style="margin-top:1.2rem;">
         <a href="#" id="link-esqueci" class="link-esqueci">Esqueci minha senha</a>
       </p>
@@ -56,21 +71,57 @@
     // Redireciona se já estiver logado
     if (sessionStorage.getItem('logado')) window.location.href = 'index.html';
 
+    // ── Toast ─────────────────────────────────────────────────────
+    function mostrarToast(mensagem, tipo = 'erro') {
+      const icones = { erro: '⚠️', aviso: '⚠️', ok: '✅' };
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${tipo}`;
+      toast.innerHTML = `<span class="toast-icone">${icones[tipo] ?? '⚠️'}</span>${mensagem}`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('saindo');
+        toast.addEventListener('animationend', () => toast.remove(), { once: true });
+      }, 3500);
+    }
+
+    // ── Ver/ocultar senha ─────────────────────────────────────────
+    document.getElementById('btn-olho').addEventListener('click', () => {
+      const input  = document.getElementById('login-pass');
+      const aberto = document.getElementById('icone-olho-aberto');
+      const fechado = document.getElementById('icone-olho-fechado');
+      if (input.type === 'password') {
+        input.type = 'text';
+        aberto.style.display  = 'none';
+        fechado.style.display = '';
+      } else {
+        input.type = 'password';
+        aberto.style.display  = '';
+        fechado.style.display = 'none';
+      }
+      input.focus();
+    });
+
     // ── Login ─────────────────────────────────────────────────────
+    const inputUser = document.getElementById('login-user');
+    const inputPass = document.getElementById('login-pass');
+
+    // Limpa borda vermelha ao digitar
+    inputUser.addEventListener('input', () => inputUser.classList.remove('erro'));
+    inputPass.addEventListener('input', () => inputPass.classList.remove('erro'));
+
     document.getElementById('form-login').addEventListener('submit', e => {
       e.preventDefault();
-      const user = document.getElementById('login-user').value.trim();
-      const pass = document.getElementById('login-pass').value;
+      const user = inputUser.value.trim();
+      const pass = inputPass.value;
 
       if (user === 'admin' && pass === 'admin') {
         sessionStorage.setItem('logado', 'true');
         window.location.href = 'index.html';
       } else {
-        const card = document.querySelector('.login-card');
-        card.classList.remove('shake');
-        void card.offsetWidth;
-        card.classList.add('shake');
-        document.getElementById('login-erro').classList.remove('oculto');
+        inputUser.classList.add('erro');
+        inputPass.classList.add('erro');
+        mostrarToast('Credenciais inválidas.');
       }
     });
 
