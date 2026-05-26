@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login — Sistema</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body class="login-body">
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
 
   <div class="login-card">
 
@@ -20,17 +23,20 @@
 
     <!-- Tela de login -->
     <div id="tela-login">
-      <form id="form-login">
+      <form id="form-login" autocomplete="off" novalidate>
         <div class="input-group">
-          <input type="text" id="login-user" placeholder="Usuário" autocomplete="username" />
+          <input type="text"     id="login-user" placeholder="Usuário"
+                 autocomplete="username" maxlength="50" />
         </div>
         <div class="input-group">
-          <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" />
+          <input type="password" id="login-pass" placeholder="Senha"
+                 autocomplete="current-password" maxlength="50" />
         </div>
-        <button type="submit" class="btn-login">Entrar</button>
+        <button type="submit" id="btn-entrar" class="btn-login" disabled>Entrar</button>
       </form>
 
-      <p id="login-erro" class="login-erro oculto">Usuário ou senha inválidos</p>
+      <p id="login-bloqueado" class="login-bloqueado oculto"></p>
+
       <p class="login-sub" style="margin-top:1.2rem;">
         <a href="#" id="link-esqueci" class="link-esqueci">Esqueci minha senha</a>
       </p>
@@ -45,7 +51,7 @@
         </div>
         <button type="submit" class="btn-login">Enviar instruções</button>
       </form>
-      <p id="rec-sucesso" class="rec-sucesso oculto">✅ Se este e-mail estiver cadastrado, você receberá as instruções em breve.</p>
+      <p id="rec-sucesso" class="rec-sucesso oculto">Se este e-mail estiver cadastrado, você receberá as instruções em breve.</p>
       <p style="margin-top:1rem;">
         <a href="#" id="link-voltar" class="link-esqueci">← Voltar ao login</a>
       </p>
@@ -53,28 +59,207 @@
   </div>
 
   <script>
-    // Redireciona se já estiver logado
-    if (sessionStorage.getItem('logado')) window.location.href = 'index.html';
+    'use strict';
 
-    // ── Login ─────────────────────────────────────────────────────
-    document.getElementById('form-login').addEventListener('submit', e => {
+    // ── Redireciona se já estiver autenticado ─────────────────────────────────
+    if (sessionStorage.getItem('jwt_token')) {
+      console.info('[Auth] Token JWT encontrado — redirecionando para index.html');
+      window.location.href = 'index.html';
+    }
+
+    // ── Constantes ─────────────────────────────────────────────────────────────
+    const MAX_TENTATIVAS = 5;
+    const BLOCK_MS       = 5_000; // 5 segundos
+
+    // ── Referências DOM ────────────────────────────────────────────────────────
+    const inputUser     = document.getElementById('login-user');
+    const inputPass     = document.getElementById('login-pass');
+    const btnEntrar     = document.getElementById('btn-entrar');
+    const bloqueadoMsg  = document.getElementById('login-bloqueado');
+
+    let intervaloContagem = null;
+
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    function mostrarToast(mensagem, tipo = 'erro') {
+      const ICONS = {
+        erro:  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>`,
+        ok:    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>`,
+        aviso: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>`
+      };
+
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${tipo}`;
+      toast.innerHTML = `<span class="toast-icone">${ICONS[tipo] ?? ICONS.erro}</span>${mensagem}`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('saindo');
+        toast.addEventListener('animationend', () => toast.remove(), { once: true });
+      }, 3500);
+    }
+
+    // ── Anti-injeção ──────────────────────────────────────────────────────────
+    function temInjecao(valor) {
+      return (
+        /<[^>]*>/.test(valor)      ||   // tags HTML
+        /javascript:/i.test(valor) ||   // protocolo JS
+        /on\w+\s*=/i.test(valor)   ||   // event handlers inline
+        /--/.test(valor)           ||   // comentário SQL
+        /\/\*/.test(valor)              // comentário bloco
+      );
+    }
+
+    // ── Habilita/desabilita botão ─────────────────────────────────────────────
+    function verificarCampos() {
+      const ok = inputUser.value.trim().length >= 2 && inputPass.value.length >= 2;
+      btnEntrar.disabled = !ok;
+    }
+
+    inputUser.addEventListener('input', verificarCampos);
+    inputPass.addEventListener('input', verificarCampos);
+
+    // ── Desbloquear após expirar o tempo ──────────────────────────────────────
+    function desbloquear() {
+      clearInterval(intervaloContagem);
+      intervaloContagem = null;
+      sessionStorage.removeItem('tentativas_login');
+      sessionStorage.removeItem('login_block_time');
+      bloqueadoMsg.classList.add('oculto');
+      bloqueadoMsg.textContent = '';
+      inputUser.disabled  = false;
+      inputPass.disabled  = false;
+      btnEntrar.disabled  = true; // permanece desabilitado até digitar >= 2 chars
+      verificarCampos();
+      inputUser.focus();
+      console.info('[Auth] Bloqueio expirado — formulário liberado.');
+    }
+
+    // ── Iniciar contagem regressiva ────────────────────────────────────────────
+    function iniciarContagem(msRestantes) {
+      inputUser.disabled = true;
+      inputPass.disabled = true;
+      btnEntrar.disabled = true;
+      bloqueadoMsg.classList.remove('oculto');
+
+      function atualizar() {
+        const restante = Math.ceil(msRestantes / 1000);
+        bloqueadoMsg.textContent = `Acesso bloqueado. Aguarde ${restante}s para tentar novamente.`;
+        console.debug(`[Auth] Contagem regressiva: ${restante}s restante(s).`);
+      }
+      atualizar();
+
+      intervaloContagem = setInterval(() => {
+        msRestantes -= 1000;
+        if (msRestantes <= 0) {
+          desbloquear();
+        } else {
+          atualizar();
+        }
+      }, 1000);
+    }
+
+    // ── Verificar bloqueio ao carregar a página ───────────────────────────────
+    (function verificarBloqueioInicial() {
+      const tentativas   = parseInt(sessionStorage.getItem('tentativas_login') || '0', 10);
+      const bloqueioInicio = parseInt(sessionStorage.getItem('login_block_time') || '0', 10);
+
+      if (tentativas >= MAX_TENTATIVAS && bloqueioInicio) {
+        const decorrido  = Date.now() - bloqueioInicio;
+        const msRestantes = BLOCK_MS - decorrido;
+        if (msRestantes > 0) {
+          console.warn(`[Auth] Bloqueio ativo ao carregar página — ${Math.ceil(msRestantes / 1000)}s restante(s).`);
+          iniciarContagem(msRestantes);
+        } else {
+          console.info('[Auth] Bloqueio já expirado — limpando estado.');
+          desbloquear();
+        }
+      }
+    })();
+
+    // ── Submit do login ────────────────────────────────────────────────────────
+    document.getElementById('form-login').addEventListener('submit', async e => {
       e.preventDefault();
-      const user = document.getElementById('login-user').value.trim();
-      const pass = document.getElementById('login-pass').value;
 
-      if (user === 'admin' && pass === 'admin') {
-        sessionStorage.setItem('logado', 'true');
+      const user = inputUser.value.trim();
+      const pass = inputPass.value;
+
+      console.debug(`[Auth] Tentativa de login — usuário: "${user}", senha: ${pass.length} char(s).`);
+
+      // Verificar injeção
+      if (temInjecao(user) || temInjecao(pass)) {
+        console.warn('[Auth] BLOQUEADO: entrada com padrão de injeção detectado.');
+        mostrarToast('Entrada inválida detectada.');
+        inputUser.classList.add('erro');
+        inputPass.classList.add('erro');
+        return;
+      }
+      inputUser.classList.remove('erro');
+      inputPass.classList.remove('erro');
+
+      // Verificar se já bloqueado
+      const tentativas = parseInt(sessionStorage.getItem('tentativas_login') || '0', 10);
+      if (tentativas >= MAX_TENTATIVAS) {
+        console.warn('[Auth] Tentativa enquanto bloqueado — ignorando.');
+        return;
+      }
+
+      console.info(`[Auth] Enviando credenciais para /auth/login (usuário: "${user}").`);
+
+      let res;
+      try {
+        res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+      } catch (err) {
+        console.error('[Auth] Erro de rede ao tentar /auth/login:', err.message);
+        mostrarToast('Erro de conexão. Verifique o servidor.');
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        sessionStorage.setItem('jwt_token', data.token);
+        sessionStorage.removeItem('tentativas_login');
+        sessionStorage.removeItem('login_block_time');
+        console.info('[Auth] Login bem-sucedido — token JWT armazenado. Redirecionando...');
         window.location.href = 'index.html';
+        return;
+      }
+
+      // Credenciais inválidas
+      const novas = tentativas + 1;
+      sessionStorage.setItem('tentativas_login', String(novas));
+      console.warn(`[Auth] Credenciais inválidas (tentativa ${novas}/${MAX_TENTATIVAS}).`);
+
+      inputUser.classList.add('erro');
+      inputPass.classList.add('erro');
+
+      if (novas >= MAX_TENTATIVAS) {
+        sessionStorage.setItem('login_block_time', String(Date.now()));
+        console.error(`[Auth] Limite de ${MAX_TENTATIVAS} tentativas atingido — bloqueando por ${BLOCK_MS / 1000}s.`);
+        mostrarToast('Credenciais inválidas.');
+        iniciarContagem(BLOCK_MS);
       } else {
-        const card = document.querySelector('.login-card');
-        card.classList.remove('shake');
-        void card.offsetWidth;
-        card.classList.add('shake');
-        document.getElementById('login-erro').classList.remove('oculto');
+        mostrarToast('Credenciais inválidas.');
       }
     });
 
-    // ── Esqueci a senha ───────────────────────────────────────────
+    // ── Esqueci a senha ────────────────────────────────────────────────────────
     document.getElementById('link-esqueci').addEventListener('click', e => {
       e.preventDefault();
       document.getElementById('tela-login').classList.add('oculto');
