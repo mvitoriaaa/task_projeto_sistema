@@ -96,6 +96,20 @@ body { font-family: sans-serif; background: #f4f4f4; color: #333; }
   font-size: .9rem;
   animation: fadeIn .3s ease;
 }
+.link-esqueci {
+  color: #3498db;
+  font-size: .88rem;
+  text-decoration: none;
+  transition: color .2s;
+}
+.link-esqueci:hover { color: #2c3e50; text-decoration: underline; }
+
+.rec-sucesso {
+  margin-top: 1rem;
+  color: #27ae60;
+  font-size: .9rem;
+  animation: fadeIn .35s ease;
+}
 
 /* ── Nav ──────────────────────────────────────────────────────── */
 nav {
