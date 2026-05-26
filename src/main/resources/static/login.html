@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Sistema</title>
+  <link rel="stylesheet" href="style.css?v=4" />
+</head>
+<body class="login-body">
+
+  <div class="login-card">
+
+    <!-- Logo -->
+    <div class="logo-wrap">
+      <img src="logo_fabrica.jpg" width="96" height="96" alt="Logo" style="border-radius:16px;object-fit:cover;" />
+    </div>
+
+    <h1>Sistema Industrial</h1>
+    <p class="login-sub">Faça login para continuar</p>
+
+    <form id="form-login">
+      <div class="input-group">
+        <input type="text" id="login-user" placeholder="Usuário" autocomplete="username" />
+      </div>
+      <div class="input-group">
+        <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn-login">Entrar</button>
+    </form>
+
+    <p id="login-erro" class="login-erro oculto">Usuário ou senha inválidos</p>
+  </div>
+
+  <script>
+    // Redireciona se já estiver logado
+    if (sessionStorage.getItem('logado')) window.location.href = 'index.html';
+
+    document.getElementById('form-login').addEventListener('submit', e => {
+      e.preventDefault();
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value;
+
+      if (user === 'admin' && pass === 'admin') {
+        sessionStorage.setItem('logado', 'true');
+        window.location.href = 'index.html';
+      } else {
+        const card = document.querySelector('.login-card');
+        card.classList.remove('shake');
+        void card.offsetWidth; // reset animation
+        card.classList.add('shake');
+        document.getElementById('login-erro').classList.remove('oculto');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+/* ── Reset ────────────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: sans-serif; background: #f4f4f4; color: #333; }
+
+/* ── Animações ────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes rowIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-10px); }
+  40%     { transform: translateX(10px); }
+  60%     { transform: translateX(-8px); }
+  80%     { transform: translateX(8px); }
+}
+@keyframes pulse {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.04); }
+}
+
+/* ── Login ────────────────────────────────────────────────────── */
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a252f 0%, #2c3e50 60%, #3498db 100%);
+}
+.login-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  width: 360px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,.35);
+  animation: fadeIn .5s ease;
+}
+.login-card.shake { animation: shake .4s ease; }
+
+.logo-wrap {
+  margin-bottom: 1rem;
+  animation: pulse 2.5s infinite;
+}
+.login-card h1 { font-size: 1.4rem; margin-bottom: .25rem; color: #2c3e50; }
+.login-sub { color: #999; font-size: .9rem; margin-bottom: 1.5rem; }
+
+.input-group {
+  position: relative;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+.input-group .input-icon {
+  position: absolute;
+  left: .75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+}
+.input-group input {
+  width: 100%;
+  padding: .80rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color .2s;
+}
+.input-group input:focus { outline: none; border-color: #3498db; }
+
+.btn-login {
+  width: 100%;
+  padding: .75rem;
+  background: #2c3e50;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background .2s, transform .1s;
+  margin-top: .25rem;
+}
+.btn-login:hover  { background: #3498db; }
+.btn-login:active { transform: scale(.98); }
+
+.login-erro {
+  margin-top: 1rem;
+  color: #e74c3c;
+  font-size: .9rem;
+  animation: fadeIn .3s ease;
+}
+
+/* ── Nav ──────────────────────────────────────────────────────── */
+nav {
+  background: #2c3e50;
+  padding: .6rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  animation: slideDown .4s ease;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-right: 1rem;
+  white-space: nowrap;
+}
+nav button {
+  background: transparent;
+  color: #ccc;
+  border: none;
+  padding: .45rem .9rem;
+  border-radius: 6px;
+  font-size: .9rem;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+nav button:hover, nav button.ativo {
+  background: #fff;
+  color: #2c3e50;
+  font-weight: 600;
+}
+.btn-sair { margin-left: auto !important; color: #e74c3c !important; }
+.btn-sair:hover { background: #e74c3c !important; color: #fff !important; }
+
+/* ── Seções ───────────────────────────────────────────────────── */
+.secao { padding: 2rem; animation: fadeIn .35s ease; }
+.oculto { display: none !important; }
+h1 { margin-bottom: 1.5rem; }
+
+/* ── Formulário ───────────────────────────────────────────────── */
+form {
+  display: flex;
+  gap: .75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+input, select {
+  padding: .5rem .75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  flex: 1;
+  min-width: 140px;
+  transition: border-color .2s, box-shadow .2s;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+}
+input.erro, select.erro { border-color: #e74c3c; }
+
+/* ── Filtro ───────────────────────────────────────────────────── */
+.filtro-bar {
+  display: flex;
+  gap: .75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.filtro-bar input,
+.filtro-bar select { flex: 1; min-width: 160px; }
+
+/* ── Botões ───────────────────────────────────────────────────── */
+button {
+  padding: .5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+}
+button:hover  { opacity: .88; }
+button:active { transform: scale(.97); }
+.btn-salvar   { background: #27ae60; color: #fff; }
+.btn-editar   { background: #2980b9; color: #fff; }
+.btn-deletar  { background: #e74c3c; color: #fff; }
+.btn-cancelar { background: #aaa;    color: #fff; }
+
+/* ── Tabela ───────────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+th, td { padding: .75rem 1rem; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #f9f9f9; font-weight: 600; }
+tbody tr { animation: rowIn .25s ease; transition: background .15s; }
+tbody tr:hover { background: #f0f7ff; }
+.acoes { display: flex; gap: .5rem; }
+
+/* Badge status */
+.badge { padding: .2rem .65rem; border-radius: 12px; font-size: .82rem; font-weight: 600; }
+.badge.ADMITIDO { background: #d4edda; color: #155724; }
+.badge.DEMITIDO { background: #f8d7da; color: #721c24; }
+
+.vazio { text-align: center; color: #999; padding: 1.5rem; }
+
+/* ── Modal ────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn .2s ease;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 340px;
+  text-align: center;
+  box-shadow: 0 6px 30px rgba(0,0,0,.25);
+  animation: fadeIn .25s ease;
+}
+.modal-box p { font-size: 1.05rem; margin-bottom: 1.5rem; }
+.modal-acoes { display: flex; gap: 1rem; justify-content: center; }
+.modal-acoes button { min-width: 110px; }
