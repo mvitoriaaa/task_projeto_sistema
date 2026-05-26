@@ -271,8 +271,20 @@
           }
         }
       } catch (err) {
-        console.error('[Auth] Erro de rede ao tentar autenticar:', err.message);
-        mostrarToast('Erro de conexão. Verifique o servidor.');
+        tentativas++;
+        sessionStorage.setItem('tentativas_login', tentativas);
+        console.error(`[Auth] Erro de rede ao tentar autenticar. Tentativa ${tentativas}/${MAX_TENTATIVAS}.`, err.message);
+        inputUser.classList.add('erro');
+        inputPass.classList.add('erro');
+
+        if (tentativas >= MAX_TENTATIVAS) {
+          console.error(`[Auth] Limite de ${MAX_TENTATIVAS} tentativas atingido (erro de rede) → bloqueando formulário por ${COOLDOWN_MS / 1000}s.`);
+          sessionStorage.setItem('login_block_time', Date.now());
+          iniciarContagem(COOLDOWN_MS);
+          mostrarToast('Acesso bloqueado. Aguarde 5 segundos.');
+        } else {
+          mostrarToast('Erro de conexão. Verifique o servidor.');
+        }
       }
     });
 
