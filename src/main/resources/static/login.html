@@ -71,12 +71,17 @@
   </div>
 
   <script>
-    // Redireciona se já estiver logado
-    if (sessionStorage.getItem('logado')) window.location.href = 'index.html';
+    // Redireciona se já tiver token válido
+    if (sessionStorage.getItem('jwt_token')) {
+      console.info('[Auth] Token JWT encontrado no sessionStorage → redirecionando para index.html');
+      window.location.href = 'index.html';
+    }
 
     // ── Constantes ────────────────────────────────────────────────
     const MAX_TENTATIVAS = 5;
+    const COOLDOWN_MS    = 5000; // 5 segundos
     let tentativas = parseInt(sessionStorage.getItem('tentativas_login') || '0');
+    console.info(`[Auth] Página carregada. Tentativas anteriores registradas: ${tentativas}/${MAX_TENTATIVAS}`);
 
     // ── Toast (ícones SVG, sem emoji) ─────────────────────────────
     const SVG_ALERTA = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
@@ -113,15 +118,19 @@
     });
 
     // ── Referências ───────────────────────────────────────────────
-    const inputUser = document.getElementById('login-user');
-    const inputPass = document.getElementById('login-pass');
-    const btnLogin  = document.getElementById('form-login').querySelector('button[type="submit"]');
+    const inputUser    = document.getElementById('login-user');
+    const inputPass    = document.getElementById('login-pass');
+    const btnLogin     = document.getElementById('form-login').querySelector('button[type="submit"]');
+    const bloqueadoEl  = document.getElementById('login-bloqueado');
+    const linkEsqueci  = document.getElementById('link-esqueci');
 
     // ── Botão desabilitado até 2 caracteres em cada campo ─────────
     btnLogin.disabled = true;
 
     function verificarCampos() {
-      btnLogin.disabled = !(inputUser.value.trim().length >= 2 && inputPass.value.length >= 2);
+      const habilitado = inputUser.value.trim().length >= 2 && inputPass.value.length >= 2;
+      btnLogin.disabled = !habilitado;
+      console.debug(`[Auth] verificarCampos → usuário: ${inputUser.value.trim().length} chars | senha: ${inputPass.value.length} chars | botão: ${habilitado ? 'habilitado' : 'desabilitado'}`);
     }
 
     inputUser.addEventListener('input', () => { inputUser.classList.remove('erro'); verificarCampos(); });
@@ -129,66 +138,141 @@
 
     // ── Validação anti-injeção ────────────────────────────────────
     const PADROES_INJECAO = [
-      /<[^>]*>/,          // tags HTML
-      /javascript:/i,     // protocolo JS
-      /on\w+\s*=/i,       // event handlers (onclick=, onload=...)
-      /--/,               // comentário SQL
-      /\/\*/,             // bloco SQL
+      /<[^>]*>/,        // tags HTML
+      /javascript:/i,   // protocolo JS
+      /on\w+\s*=/i,     // event handlers inline
+      /--/,             // comentário SQL
+      /\/\*/,           // bloco SQL
     ];
 
     function temInjecao(valor) {
-      return PADROES_INJECAO.some(p => p.test(valor));
+      const padrao = PADROES_INJECAO.find(p => p.test(valor));
+      if (padrao) {
+        console.warn(`[Security] Padrão de injeção detectado no campo de entrada. Padrão: ${padrao} | Valor (primeiros 30 chars): "${valor.slice(0, 30)}"`);
+      }
+      return !!padrao;
     }
 
-    // ── Bloqueio de acesso ────────────────────────────────────────
-    function aplicarBloqueio() {
+    // ── Desbloquear (chamado após contagem chegar a zero) ─────────
+    function desbloquear() {
+      console.info('[Auth] Cooldown encerrado → formulário desbloqueado. Contador de tentativas zerado.');
+      tentativas = 0;
+      sessionStorage.removeItem('tentativas_login');
+      sessionStorage.removeItem('login_block_time');
+      inputUser.disabled = false;
+      inputPass.disabled = false;
+      document.getElementById('btn-olho').disabled = false;
+      bloqueadoEl.classList.add('oculto');
+      linkEsqueci.style.pointerEvents = '';
+      linkEsqueci.style.opacity = '';
+      verificarCampos();
+      inputUser.focus();
+    }
+
+    // ── Contador regressivo de bloqueio ───────────────────────────
+    function iniciarContagem(msRestantes) {
+      console.warn(`[Auth] Formulário bloqueado. Cooldown iniciado: ${Math.ceil(msRestantes / 1000)}s restantes.`);
       inputUser.disabled = true;
       inputPass.disabled = true;
       btnLogin.disabled  = true;
       document.getElementById('btn-olho').disabled = true;
-      document.getElementById('login-bloqueado').classList.remove('oculto');
-      const linkEsqueci = document.getElementById('link-esqueci');
       linkEsqueci.style.pointerEvents = 'none';
       linkEsqueci.style.opacity = '.35';
+      bloqueadoEl.classList.remove('oculto');
+
+      let seg = Math.ceil(msRestantes / 1000);
+      bloqueadoEl.textContent = `Acesso bloqueado. Aguarde ${seg}s para tentar novamente.`;
+
+      const timer = setInterval(() => {
+        seg--;
+        if (seg <= 0) {
+          clearInterval(timer);
+          desbloquear();
+        } else {
+          console.debug(`[Auth] Cooldown: ${seg}s restantes...`);
+          bloqueadoEl.textContent = `Acesso bloqueado. Aguarde ${seg}s para tentar novamente.`;
+        }
+      }, 1000);
     }
 
-    // Aplica bloqueio imediatamente se já tiver atingido o limite
-    if (tentativas >= MAX_TENTATIVAS) aplicarBloqueio();
+    // ── Verifica bloqueio ao carregar a página ────────────────────
+    if (tentativas >= MAX_TENTATIVAS) {
+      const blocoInicio = parseInt(sessionStorage.getItem('login_block_time') || '0');
+      if (blocoInicio) {
+        const decorrido = Date.now() - blocoInicio;
+        const restante  = COOLDOWN_MS - decorrido;
+        if (restante > 0) {
+          console.warn(`[Auth] Bloqueio ativo ao recarregar página. Decorrido: ${Math.round(decorrido / 1000)}s | Restante: ${Math.ceil(restante / 1000)}s`);
+          iniciarContagem(restante);
+        } else {
+          console.info('[Auth] Bloqueio expirado antes de recarregar. Desbloqueando imediatamente.');
+          desbloquear();
+        }
+      } else {
+        console.warn('[Auth] Máximo de tentativas atingido sem timestamp de bloqueio registrado. Iniciando cooldown agora.');
+        sessionStorage.setItem('login_block_time', Date.now());
+        iniciarContagem(COOLDOWN_MS);
+      }
+    }
 
     // ── Login ─────────────────────────────────────────────────────
-    document.getElementById('form-login').addEventListener('submit', e => {
+    document.getElementById('form-login').addEventListener('submit', async e => {
       e.preventDefault();
+      console.info('[Auth] Tentativa de login iniciada.');
 
-      if (tentativas >= MAX_TENTATIVAS) return;
+      if (tentativas >= MAX_TENTATIVAS) {
+        console.error('[Auth] Submit bloqueado — formulário ainda em cooldown. Tentativas esgotadas.');
+        return;
+      }
 
       const user = inputUser.value.trim();
       const pass = inputPass.value;
 
-      // Bloqueia entrada com padrões de injeção
+      // Não loga user/pass para não vazar credenciais no console
+      console.info(`[Auth] Validando entrada — usuário: ${user.length} chars | senha: ${pass.length} chars`);
+
       if (temInjecao(user) || temInjecao(pass)) {
+        console.error('[Security] Submit bloqueado — padrão de injeção identificado na entrada. Verifique o log acima para o padrão detectado.');
         inputUser.classList.add('erro');
         inputPass.classList.add('erro');
         mostrarToast('Entrada inválida detectada.');
         return;
       }
 
-      if (user === 'admin' && pass === 'admin') {
-        sessionStorage.removeItem('tentativas_login');
-        sessionStorage.setItem('logado', 'true');
-        window.location.href = 'index.html';
-      } else {
-        tentativas++;
-        sessionStorage.setItem('tentativas_login', tentativas);
-        inputUser.classList.add('erro');
-        inputPass.classList.add('erro');
+      console.info('[Auth] Enviando credenciais para POST /auth/login...');
+      try {
+        const res = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
 
-        const restantes = MAX_TENTATIVAS - tentativas;
-        if (restantes <= 0) {
-          aplicarBloqueio();
-          mostrarToast('Acesso bloqueado após 5 tentativas.');
+        if (res.ok) {
+          const data = await res.json();
+          console.info('[Auth] Login bem-sucedido → token JWT recebido e salvo. Redirecionando...');
+          sessionStorage.setItem('jwt_token', data.token);
+          sessionStorage.removeItem('tentativas_login');
+          sessionStorage.removeItem('login_block_time');
+          window.location.href = 'index.html';
         } else {
-          mostrarToast(`Credenciais inválidas. ${restantes} tentativa(s) restante(s).`);
+          tentativas++;
+          sessionStorage.setItem('tentativas_login', tentativas);
+          console.warn(`[Auth] Credenciais rejeitadas pelo servidor. Tentativa ${tentativas}/${MAX_TENTATIVAS}. Status: ${res.status}`);
+          inputUser.classList.add('erro');
+          inputPass.classList.add('erro');
+
+          if (tentativas >= MAX_TENTATIVAS) {
+            console.error(`[Auth] Limite de ${MAX_TENTATIVAS} tentativas atingido → bloqueando formulário por ${COOLDOWN_MS / 1000}s.`);
+            sessionStorage.setItem('login_block_time', Date.now());
+            iniciarContagem(COOLDOWN_MS);
+            mostrarToast('Acesso bloqueado. Aguarde 5 segundos.');
+          } else {
+            mostrarToast('Credenciais inválidas.');
+          }
         }
+      } catch (err) {
+        console.error('[Auth] Erro de rede ao tentar autenticar:', err.message);
+        mostrarToast('Erro de conexão. Verifique o servidor.');
       }
     });
 

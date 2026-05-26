@@ -1,8 +1,12 @@
 // ── Proteção de rota ──────────────────────────────────────────────────────────
-if (!sessionStorage.getItem('logado')) window.location.href = 'login.html';
+if (!sessionStorage.getItem('jwt_token')) {
+  console.warn('[Auth] Nenhum token JWT encontrado → redirecionando para login.');
+  window.location.href = 'login.html';
+}
 
 function sair() {
-  sessionStorage.removeItem('logado');
+  console.info('[Auth] Usuário encerrou a sessão → token removido.');
+  sessionStorage.removeItem('jwt_token');
   window.location.href = 'login.html';
 }
 
@@ -38,8 +42,26 @@ function confirmar(mensagem) {
 // ── Requisições com log de erro ───────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
   const metodo = options.method || 'GET';
+
+  // Injeta o token JWT em todas as requisições autenticadas
+  const token = sessionStorage.getItem('jwt_token');
+  if (token) {
+    options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+  } else {
+    console.warn(`[Auth] apiFetch chamado sem token JWT para ${metodo} ${url}`);
+  }
+
   try {
     const res = await fetch(url, options);
+
+    // Token expirado ou inválido → desloga automaticamente
+    if (res.status === 401) {
+      console.error(`[Auth] 401 em ${metodo} ${url} → token expirado ou inválido. Redirecionando para login.`);
+      sessionStorage.removeItem('jwt_token');
+      window.location.href = 'login.html';
+      return null;
+    }
+
     if (!res.ok) {
       const texto = await res.text().catch(() => '');
       console.error(`[API] ${metodo} ${url} → ${res.status} ${res.statusText}`, texto || '(sem body)');
