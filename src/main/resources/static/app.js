@@ -1,11 +1,11 @@
 // ── Proteção de rota ──────────────────────────────────────────────────────────
 if (!sessionStorage.getItem('jwt_token')) {
-  console.warn('[Auth] Nenhum token JWT encontrado → redirecionando para login.');
+  console.warn('[App] JWT ausente — redirecionando para login.');
   window.location.href = 'login.html';
 }
 
 function sair() {
-  console.info('[Auth] Usuário encerrou a sessão → token removido.');
+  console.info('[App] Usuário saiu — removendo token JWT.');
   sessionStorage.removeItem('jwt_token');
   window.location.href = 'login.html';
 }
@@ -39,24 +39,23 @@ function confirmar(mensagem) {
   });
 }
 
-// ── Requisições com log de erro ───────────────────────────────────────────────
+// ── Requisições autenticadas ──────────────────────────────────────────────────
 async function apiFetch(url, options = {}) {
   const metodo = options.method || 'GET';
+  const token  = sessionStorage.getItem('jwt_token');
 
-  // Injeta o token JWT em todas as requisições autenticadas
-  const token = sessionStorage.getItem('jwt_token');
-  if (token) {
-    options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
-  } else {
-    console.warn(`[Auth] apiFetch chamado sem token JWT para ${metodo} ${url}`);
-  }
+  // Injeta o Bearer token em todas as chamadas
+  options.headers = {
+    ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+  };
 
   try {
     const res = await fetch(url, options);
 
-    // Token expirado ou inválido → desloga automaticamente
+    // Token expirado ou inválido — devolve para login
     if (res.status === 401) {
-      console.error(`[Auth] 401 em ${metodo} ${url} → token expirado ou inválido. Redirecionando para login.`);
+      console.warn(`[API] 401 em ${metodo} ${url} — token inválido ou expirado. Redirecionando...`);
       sessionStorage.removeItem('jwt_token');
       window.location.href = 'login.html';
       return null;
@@ -67,6 +66,7 @@ async function apiFetch(url, options = {}) {
       console.error(`[API] ${metodo} ${url} → ${res.status} ${res.statusText}`, texto || '(sem body)');
       return null;
     }
+
     if (res.status === 204) return null;
     return await res.json();
   } catch (err) {
@@ -76,15 +76,29 @@ async function apiFetch(url, options = {}) {
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
-const _SVG_ALERTA = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-const _SVG_OK     = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
-
 function mostrarToast(mensagem, tipo = 'erro') {
-  const icone = tipo === 'ok' ? _SVG_OK : _SVG_ALERTA;
+  const ICONS = {
+    erro:  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>`,
+    ok:    `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>`,
+    aviso: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>`
+  };
+
   const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast ${tipo}`;
-  toast.innerHTML = `<span class="toast-icone">${icone}</span>${mensagem}`;
+  toast.innerHTML = `<span class="toast-icone">${ICONS[tipo] ?? ICONS.erro}</span>${mensagem}`;
   container.appendChild(toast);
 
   setTimeout(() => {

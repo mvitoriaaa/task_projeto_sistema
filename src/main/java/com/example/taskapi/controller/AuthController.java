@@ -24,19 +24,15 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
         try {
-            String username = body.get("username");
-            String password = body.get("password");
-
-            // Delega a validação ao Spring Security (verifica banco + BCrypt)
             authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
+                new UsernamePasswordAuthenticationToken(
+                    body.get("username"),
+                    body.get("password")
+                )
             );
-
-            String token = jwtUtil.gerarToken(username);
+            String token = jwtUtil.gerarToken(body.get("username"));
             return ResponseEntity.ok(Map.of("token", token));
-
         } catch (BadCredentialsException e) {
-            // Não revela se foi o usuário ou a senha que errou
             return ResponseEntity.status(401).body(Map.of("erro", "Credenciais inválidas"));
         }
     }

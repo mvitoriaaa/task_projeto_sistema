@@ -110,10 +110,10 @@ body { font-family: sans-serif; background: #f4f4f4; color: #333; }
   transition: background .2s, transform .1s;
   margin-top: .25rem;
 }
-.btn-login:hover              { background: #3498db; }
-.btn-login:active             { transform: scale(.98); }
-.btn-login:disabled           { background: #b2bec3; cursor: not-allowed; transform: none; }
-.btn-login:disabled:hover     { background: #b2bec3; }
+.btn-login:hover         { background: #3498db; }
+.btn-login:active        { transform: scale(.98); }
+.btn-login:disabled      { background: #b2bec3; cursor: not-allowed; transform: none; }
+.btn-login:disabled:hover{ background: #b2bec3; }
 
 .login-bloqueado {
   margin-top: 1rem;

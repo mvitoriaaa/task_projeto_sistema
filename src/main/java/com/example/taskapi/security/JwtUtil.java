@@ -22,7 +22,6 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    /** Gera um token JWT assinado com o username como subject */
     public String gerarToken(String username) {
         return Jwts.builder()
                 .subject(username)
@@ -32,7 +31,6 @@ public class JwtUtil {
                 .compact();
     }
 
-    /** Extrai o username (subject) do token */
     public String extrairUsuario(String token) {
         return Jwts.parser()
                 .verifyWith(getKey())
@@ -42,7 +40,6 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    /** Valida assinatura e expiração do token */
     public boolean validar(String token) {
         try {
             Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token);

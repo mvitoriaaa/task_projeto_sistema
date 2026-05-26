@@ -17,9 +17,9 @@ public class DataInitializer {
         return args -> {
             if (repo.findByUsername("admin").isEmpty()) {
                 repo.save(new Usuario(null, "admin", encoder.encode("admin")));
-                System.out.println("[Init] Usuário admin criado no banco com senha hash BCrypt.");
+                System.out.println("[Init] Usuário 'admin' criado no banco com senha hash BCrypt.");
             } else {
-                System.out.println("[Init] Usuário admin já existe — nenhuma ação necessária.");
+                System.out.println("[Init] Usuário 'admin' já existe no banco.");
             }
         };
     }

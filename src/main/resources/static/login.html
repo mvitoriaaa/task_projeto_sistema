@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login — Sistema</title>
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body class="login-body">
 
-  <!-- Toast container (reutiliza os estilos do app) -->
+  <!-- Toast container -->
   <div id="toast-container"></div>
 
   <div class="login-card">
@@ -23,32 +23,35 @@
 
     <!-- Tela de login -->
     <div id="tela-login">
-      <form id="form-login">
+      <form id="form-login" autocomplete="off" novalidate>
         <div class="input-group">
-          <input type="text" id="login-user" placeholder="Usuário" autocomplete="username" maxlength="50" />
+          <input type="text" id="login-user" placeholder="Usuário"
+                 autocomplete="username" maxlength="50" />
         </div>
         <div class="input-group">
-          <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" maxlength="50" />
+          <input type="password" id="login-pass" placeholder="Senha"
+                 autocomplete="current-password" maxlength="50" />
+          <!-- Botão ver/ocultar senha (do fix/Design_do_sistema) -->
           <button type="button" class="btn-olho" id="btn-olho" title="Mostrar/ocultar senha">
-            <!-- olho aberto -->
-            <svg id="icone-olho-aberto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg id="icone-olho-aberto" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
-            <!-- olho fechado -->
-            <svg id="icone-olho-fechado" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+            <svg id="icone-olho-fechado" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 style="display:none;">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
               <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
               <line x1="1" y1="1" x2="23" y2="23"/>
             </svg>
           </button>
         </div>
-        <button type="submit" class="btn-login">Entrar</button>
+        <button type="submit" id="btn-entrar" class="btn-login" disabled>Entrar</button>
       </form>
 
-      <p id="login-bloqueado" class="login-bloqueado oculto">
-        Acesso bloqueado. Limite de tentativas atingido.
-      </p>
+      <p id="login-bloqueado" class="login-bloqueado oculto"></p>
+
       <p class="login-sub" style="margin-top:1.2rem;">
         <a href="#" id="link-esqueci" class="link-esqueci">Esqueci minha senha</a>
       </p>
@@ -63,7 +66,7 @@
         </div>
         <button type="submit" class="btn-login">Enviar instruções</button>
       </form>
-      <p id="rec-sucesso" class="rec-sucesso oculto">✅ Se este e-mail estiver cadastrado, você receberá as instruções em breve.</p>
+      <p id="rec-sucesso" class="rec-sucesso oculto">Se este e-mail estiver cadastrado, você receberá as instruções em breve.</p>
       <p style="margin-top:1rem;">
         <a href="#" id="link-voltar" class="link-esqueci">← Voltar ao login</a>
       </p>
@@ -71,239 +74,200 @@
   </div>
 
   <script>
-    // Redireciona se já tiver token válido
+    'use strict';
+
+    // Redireciona se já estiver autenticado (JWT)
     if (sessionStorage.getItem('jwt_token')) {
-      console.info('[Auth] Token JWT encontrado no sessionStorage → redirecionando para index.html');
+      console.info('[Auth] Token JWT encontrado — redirecionando para index.html');
       window.location.href = 'index.html';
     }
 
-    // ── Constantes ────────────────────────────────────────────────
-    const MAX_TENTATIVAS = 5;
-    const COOLDOWN_MS    = 5000; // 5 segundos
-    let tentativas = parseInt(sessionStorage.getItem('tentativas_login') || '0');
-    console.info(`[Auth] Página carregada. Tentativas anteriores registradas: ${tentativas}/${MAX_TENTATIVAS}`);
+    // ── Constantes ─────────────────────────────────────────────────────────────
+    var MAX_TENTATIVAS = 5;
+    var BLOCK_MS       = 5000; // 5 segundos
 
-    // ── Toast (ícones SVG, sem emoji) ─────────────────────────────
-    const SVG_ALERTA = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-    const SVG_OK     = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+    // ── Referências DOM ────────────────────────────────────────────────────────
+    var inputUser    = document.getElementById('login-user');
+    var inputPass    = document.getElementById('login-pass');
+    var btnEntrar    = document.getElementById('btn-entrar');
+    var bloqueadoMsg = document.getElementById('login-bloqueado');
+    var intervaloContagem = null;
 
-    function mostrarToast(mensagem, tipo = 'erro') {
-      const icone = tipo === 'ok' ? SVG_OK : SVG_ALERTA;
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast ${tipo}`;
-      toast.innerHTML = `<span class="toast-icone">${icone}</span>${mensagem}`;
+    // ── Toast com ícones SVG ───────────────────────────────────────────────────
+    function mostrarToast(mensagem, tipo) {
+      tipo = tipo || 'erro';
+      var ICONS = {
+        erro:  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+        ok:    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+        aviso: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+      };
+      var container = document.getElementById('toast-container');
+      var toast = document.createElement('div');
+      toast.className = 'toast ' + tipo;
+      toast.innerHTML = '<span class="toast-icone">' + (ICONS[tipo] || ICONS.erro) + '</span>' + mensagem;
       container.appendChild(toast);
-      setTimeout(() => {
+      setTimeout(function() {
         toast.classList.add('saindo');
-        toast.addEventListener('animationend', () => toast.remove(), { once: true });
+        toast.addEventListener('animationend', function() { toast.remove(); }, { once: true });
       }, 3500);
     }
 
-    // ── Ver/ocultar senha ─────────────────────────────────────────
-    document.getElementById('btn-olho').addEventListener('click', () => {
-      const input  = document.getElementById('login-pass');
-      const aberto = document.getElementById('icone-olho-aberto');
-      const fechado = document.getElementById('icone-olho-fechado');
-      if (input.type === 'password') {
-        input.type = 'text';
+    // ── Ver/ocultar senha ──────────────────────────────────────────────────────
+    document.getElementById('btn-olho').addEventListener('click', function() {
+      var aberto  = document.getElementById('icone-olho-aberto');
+      var fechado = document.getElementById('icone-olho-fechado');
+      if (inputPass.type === 'password') {
+        inputPass.type        = 'text';
         aberto.style.display  = 'none';
         fechado.style.display = '';
       } else {
-        input.type = 'password';
+        inputPass.type        = 'password';
         aberto.style.display  = '';
         fechado.style.display = 'none';
       }
-      input.focus();
+      inputPass.focus();
     });
 
-    // ── Referências ───────────────────────────────────────────────
-    const inputUser    = document.getElementById('login-user');
-    const inputPass    = document.getElementById('login-pass');
-    const btnLogin     = document.getElementById('form-login').querySelector('button[type="submit"]');
-    const bloqueadoEl  = document.getElementById('login-bloqueado');
-    const linkEsqueci  = document.getElementById('link-esqueci');
+    // ── Anti-injeção ──────────────────────────────────────────────────────────
+    function temInjecao(v) {
+      return /<[^>]*>/.test(v) || /javascript:/i.test(v) || /on\w+\s*=/i.test(v) || /--/.test(v) || /\/\*/.test(v);
+    }
 
-    // ── Botão desabilitado até 2 caracteres em cada campo ─────────
-    btnLogin.disabled = true;
-
+    // ── Habilita botão apenas com >= 2 chars ──────────────────────────────────
     function verificarCampos() {
-      const habilitado = inputUser.value.trim().length >= 2 && inputPass.value.length >= 2;
-      btnLogin.disabled = !habilitado;
-      console.debug(`[Auth] verificarCampos → usuário: ${inputUser.value.trim().length} chars | senha: ${inputPass.value.length} chars | botão: ${habilitado ? 'habilitado' : 'desabilitado'}`);
+      btnEntrar.disabled = !(inputUser.value.trim().length >= 2 && inputPass.value.length >= 2);
     }
 
-    inputUser.addEventListener('input', () => { inputUser.classList.remove('erro'); verificarCampos(); });
-    inputPass.addEventListener('input', () => { inputPass.classList.remove('erro'); verificarCampos(); });
+    inputUser.addEventListener('input', function() { inputUser.classList.remove('erro'); verificarCampos(); });
+    inputPass.addEventListener('input', function() { inputPass.classList.remove('erro'); verificarCampos(); });
 
-    // ── Validação anti-injeção ────────────────────────────────────
-    const PADROES_INJECAO = [
-      /<[^>]*>/,        // tags HTML
-      /javascript:/i,   // protocolo JS
-      /on\w+\s*=/i,     // event handlers inline
-      /--/,             // comentário SQL
-      /\/\*/,           // bloco SQL
-    ];
-
-    function temInjecao(valor) {
-      const padrao = PADROES_INJECAO.find(p => p.test(valor));
-      if (padrao) {
-        console.warn(`[Security] Padrão de injeção detectado no campo de entrada. Padrão: ${padrao} | Valor (primeiros 30 chars): "${valor.slice(0, 30)}"`);
-      }
-      return !!padrao;
-    }
-
-    // ── Desbloquear (chamado após contagem chegar a zero) ─────────
+    // ── Desbloquear ────────────────────────────────────────────────────────────
     function desbloquear() {
-      console.info('[Auth] Cooldown encerrado → formulário desbloqueado. Contador de tentativas zerado.');
-      tentativas = 0;
+      clearInterval(intervaloContagem);
+      intervaloContagem = null;
       sessionStorage.removeItem('tentativas_login');
       sessionStorage.removeItem('login_block_time');
+      bloqueadoMsg.classList.add('oculto');
+      bloqueadoMsg.textContent = '';
       inputUser.disabled = false;
       inputPass.disabled = false;
-      document.getElementById('btn-olho').disabled = false;
-      bloqueadoEl.classList.add('oculto');
-      linkEsqueci.style.pointerEvents = '';
-      linkEsqueci.style.opacity = '';
+      btnEntrar.disabled = true;
       verificarCampos();
       inputUser.focus();
+      console.info('[Auth] Bloqueio expirado — formulário liberado.');
     }
 
-    // ── Contador regressivo de bloqueio ───────────────────────────
+    // ── Contagem regressiva ────────────────────────────────────────────────────
     function iniciarContagem(msRestantes) {
-      console.warn(`[Auth] Formulário bloqueado. Cooldown iniciado: ${Math.ceil(msRestantes / 1000)}s restantes.`);
       inputUser.disabled = true;
       inputPass.disabled = true;
-      btnLogin.disabled  = true;
-      document.getElementById('btn-olho').disabled = true;
-      linkEsqueci.style.pointerEvents = 'none';
-      linkEsqueci.style.opacity = '.35';
-      bloqueadoEl.classList.remove('oculto');
+      btnEntrar.disabled = true;
+      bloqueadoMsg.classList.remove('oculto');
 
-      let seg = Math.ceil(msRestantes / 1000);
-      bloqueadoEl.textContent = `Acesso bloqueado. Aguarde ${seg}s para tentar novamente.`;
+      function atualizar() {
+        bloqueadoMsg.textContent = 'Acesso bloqueado. Aguarde ' + Math.ceil(msRestantes / 1000) + 's para tentar novamente.';
+      }
+      atualizar();
 
-      const timer = setInterval(() => {
-        seg--;
-        if (seg <= 0) {
-          clearInterval(timer);
-          desbloquear();
-        } else {
-          console.debug(`[Auth] Cooldown: ${seg}s restantes...`);
-          bloqueadoEl.textContent = `Acesso bloqueado. Aguarde ${seg}s para tentar novamente.`;
-        }
+      intervaloContagem = setInterval(function() {
+        msRestantes -= 1000;
+        if (msRestantes <= 0) { desbloquear(); } else { atualizar(); }
       }, 1000);
     }
 
-    // ── Verifica bloqueio ao carregar a página ────────────────────
-    if (tentativas >= MAX_TENTATIVAS) {
-      const blocoInicio = parseInt(sessionStorage.getItem('login_block_time') || '0');
-      if (blocoInicio) {
-        const decorrido = Date.now() - blocoInicio;
-        const restante  = COOLDOWN_MS - decorrido;
-        if (restante > 0) {
-          console.warn(`[Auth] Bloqueio ativo ao recarregar página. Decorrido: ${Math.round(decorrido / 1000)}s | Restante: ${Math.ceil(restante / 1000)}s`);
-          iniciarContagem(restante);
-        } else {
-          console.info('[Auth] Bloqueio expirado antes de recarregar. Desbloqueando imediatamente.');
-          desbloquear();
-        }
-      } else {
-        console.warn('[Auth] Máximo de tentativas atingido sem timestamp de bloqueio registrado. Iniciando cooldown agora.');
-        sessionStorage.setItem('login_block_time', Date.now());
-        iniciarContagem(COOLDOWN_MS);
+    // ── Verifica bloqueio ao carregar ──────────────────────────────────────────
+    (function() {
+      var t = parseInt(sessionStorage.getItem('tentativas_login') || '0', 10);
+      var b = parseInt(sessionStorage.getItem('login_block_time')  || '0', 10);
+      if (t >= MAX_TENTATIVAS && b) {
+        var ms = BLOCK_MS - (Date.now() - b);
+        if (ms > 0) { iniciarContagem(ms); } else { desbloquear(); }
       }
-    }
+    })();
 
-    // ── Login ─────────────────────────────────────────────────────
-    document.getElementById('form-login').addEventListener('submit', async e => {
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    document.getElementById('form-login').addEventListener('submit', async function(e) {
       e.preventDefault();
-      console.info('[Auth] Tentativa de login iniciada.');
+      var user = inputUser.value.trim();
+      var pass = inputPass.value;
 
-      if (tentativas >= MAX_TENTATIVAS) {
-        console.error('[Auth] Submit bloqueado — formulário ainda em cooldown. Tentativas esgotadas.');
-        return;
-      }
-
-      const user = inputUser.value.trim();
-      const pass = inputPass.value;
-
-      // Não loga user/pass para não vazar credenciais no console
-      console.info(`[Auth] Validando entrada — usuário: ${user.length} chars | senha: ${pass.length} chars`);
+      console.debug('[Auth] Tentativa — usuário: "' + user + '", senha: ' + pass.length + ' char(s).');
 
       if (temInjecao(user) || temInjecao(pass)) {
-        console.error('[Security] Submit bloqueado — padrão de injeção identificado na entrada. Verifique o log acima para o padrão detectado.');
+        console.warn('[Auth] BLOQUEADO: padrão de injeção detectado.');
+        mostrarToast('Entrada inválida detectada.');
         inputUser.classList.add('erro');
         inputPass.classList.add('erro');
-        mostrarToast('Entrada inválida detectada.');
         return;
       }
 
-      console.info('[Auth] Enviando credenciais para POST /auth/login...');
+      var tentativas = parseInt(sessionStorage.getItem('tentativas_login') || '0', 10);
+      if (tentativas >= MAX_TENTATIVAS) return;
+
+      console.info('[Auth] Enviando para /auth/login (usuário: "' + user + '").');
+
+      var res;
       try {
-        const res = await fetch('/auth/login', {
+        res = await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: user, password: pass })
         });
-
-        if (res.ok) {
-          const data = await res.json();
-          console.info('[Auth] Login bem-sucedido → token JWT recebido e salvo. Redirecionando...');
-          sessionStorage.setItem('jwt_token', data.token);
-          sessionStorage.removeItem('tentativas_login');
-          sessionStorage.removeItem('login_block_time');
-          window.location.href = 'index.html';
-        } else {
-          tentativas++;
-          sessionStorage.setItem('tentativas_login', tentativas);
-          console.warn(`[Auth] Credenciais rejeitadas pelo servidor. Tentativa ${tentativas}/${MAX_TENTATIVAS}. Status: ${res.status}`);
-          inputUser.classList.add('erro');
-          inputPass.classList.add('erro');
-
-          if (tentativas >= MAX_TENTATIVAS) {
-            console.error(`[Auth] Limite de ${MAX_TENTATIVAS} tentativas atingido → bloqueando formulário por ${COOLDOWN_MS / 1000}s.`);
-            sessionStorage.setItem('login_block_time', Date.now());
-            iniciarContagem(COOLDOWN_MS);
-            mostrarToast('Acesso bloqueado. Aguarde 5 segundos.');
-          } else {
-            mostrarToast('Credenciais inválidas.');
-          }
-        }
       } catch (err) {
-        console.error('[Auth] Erro de rede ao tentar autenticar:', err.message);
+        console.error('[Auth] Erro de rede:', err.message);
         mostrarToast('Erro de conexão. Verifique o servidor.');
+        return;
+      }
+
+      if (res.ok) {
+        var data = await res.json();
+        sessionStorage.setItem('jwt_token', data.token);
+        sessionStorage.removeItem('tentativas_login');
+        sessionStorage.removeItem('login_block_time');
+        console.info('[Auth] Login OK — redirecionando...');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      var novas = tentativas + 1;
+      sessionStorage.setItem('tentativas_login', String(novas));
+      console.warn('[Auth] Credenciais inválidas (tentativa ' + novas + '/' + MAX_TENTATIVAS + ').');
+      inputUser.classList.add('erro');
+      inputPass.classList.add('erro');
+      mostrarToast('Credenciais inválidas.');
+
+      if (novas >= MAX_TENTATIVAS) {
+        sessionStorage.setItem('login_block_time', String(Date.now()));
+        console.error('[Auth] Limite atingido — bloqueando por ' + (BLOCK_MS / 1000) + 's.');
+        iniciarContagem(BLOCK_MS);
       }
     });
 
-    // ── Esqueci a senha ───────────────────────────────────────────
-    document.getElementById('link-esqueci').addEventListener('click', e => {
+    // ── Esqueci a senha ────────────────────────────────────────────────────────
+    document.getElementById('link-esqueci').addEventListener('click', function(e) {
       e.preventDefault();
       document.getElementById('tela-login').classList.add('oculto');
-      const rec = document.getElementById('tela-recuperacao');
+      var rec = document.getElementById('tela-recuperacao');
       rec.classList.remove('oculto');
       rec.style.animation = 'fadeIn .3s ease';
       document.getElementById('rec-email').focus();
     });
 
-    document.getElementById('link-voltar').addEventListener('click', e => {
+    document.getElementById('link-voltar').addEventListener('click', function(e) {
       e.preventDefault();
       document.getElementById('tela-recuperacao').classList.add('oculto');
       document.getElementById('rec-sucesso').classList.add('oculto');
       document.getElementById('rec-email').value = '';
-      const login = document.getElementById('tela-login');
+      var login = document.getElementById('tela-login');
       login.classList.remove('oculto');
       login.style.animation = 'fadeIn .3s ease';
     });
 
-    document.getElementById('form-recuperacao').addEventListener('submit', e => {
+    document.getElementById('form-recuperacao').addEventListener('submit', function(e) {
       e.preventDefault();
-      const email = document.getElementById('rec-email').value.trim();
-      if (!email) {
-        document.getElementById('rec-email').classList.add('erro');
-        return;
-      }
-      document.getElementById('rec-email').classList.remove('erro');
+      var email = document.getElementById('rec-email').value.trim();
+      if (!email) { document.getElementById('rec-email').style.borderColor = '#e74c3c'; return; }
+      document.getElementById('rec-email').style.borderColor = '';
       document.getElementById('form-recuperacao').classList.add('oculto');
       document.getElementById('rec-sucesso').classList.remove('oculto');
     });
