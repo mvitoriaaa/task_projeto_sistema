@@ -4,6 +4,16 @@ if (!sessionStorage.getItem('jwt_token')) {
   window.location.href = 'login.html';
 }
 
+// Exibe o nome do usuário logado no nav
+(function exibirUsuarioNav() {
+  try {
+    const token   = sessionStorage.getItem('jwt_token');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const el = document.getElementById('nav-usuario');
+    if (el && payload.sub) el.textContent = payload.sub;
+  } catch { /* silencia erros de decodificação */ }
+})();
+
 function sair() {
   console.info('[Auth] Usuário encerrou a sessão → token removido.');
   sessionStorage.removeItem('jwt_token');
@@ -20,6 +30,8 @@ function mostrarSecao(id, btn) {
   if (id === 'setores')      listarSetores();
   if (id === 'fabricas')     listarFabricas();
   if (id === 'funcionarios') { carregarSetores(); listarFuncionarios(); }
+
+  atualizarStats();
 }
 
 // ── Modal de confirmação ──────────────────────────────────────────────────────
@@ -117,6 +129,25 @@ async function recarregarComPosicao(fn) {
   window.scrollTo({ top: y, behavior: 'instant' });
 }
 
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function atualizarStats() {
+  const [funcionarios, setores, fabricas] = await Promise.all([
+    apiFetch('/funcionarios'),
+    apiFetch('/setores'),
+    apiFetch('/tipos-fabrica')
+  ]);
+
+  if (funcionarios) {
+    const admitidos = funcionarios.filter(f => f.status === 'ADMITIDO').length;
+    const demitidos = funcionarios.filter(f => f.status === 'DEMITIDO').length;
+    document.getElementById('stat-total-func').textContent = funcionarios.length;
+    document.getElementById('stat-admitidos').textContent  = admitidos;
+    document.getElementById('stat-demitidos').textContent  = demitidos;
+  }
+  if (setores)  document.getElementById('stat-setores').textContent  = setores.length;
+  if (fabricas) document.getElementById('stat-fabricas').textContent = fabricas.length;
+}
+
 // ── SETORES ───────────────────────────────────────────────────────────────────
 async function listarSetores() {
   console.log('[Setores] Carregando...');
@@ -159,24 +190,37 @@ document.getElementById('form-setor').addEventListener('submit', async e => {
   const id = document.getElementById('setor-id').value;
   if (id) {
     await apiFetch(`/setores/${id}`, { method: 'PUT', headers: json(), body: JSON.stringify({ nome }) });
+    mostrarToast('Setor atualizado.', 'ok');
   } else {
     await apiFetch('/setores', { method: 'POST', headers: json(), body: JSON.stringify({ nome }) });
+    mostrarToast('Setor cadastrado.', 'ok');
   }
-  limpar('setor-id', 'setor-nome');
+  cancelarEdicaoSetor();
   await recarregarComPosicao(listarSetores);
+  atualizarStats();
 });
 
 function editarSetor(id, nome) {
   document.getElementById('setor-id').value   = id;
   document.getElementById('setor-nome').value = nome;
+  document.getElementById('form-setor-titulo').textContent = 'Editar Setor';
+  document.getElementById('btn-cancelar-setor').classList.remove('oculto');
   irParaForm('form-setor');
+}
+
+function cancelarEdicaoSetor() {
+  limpar('setor-id', 'setor-nome');
+  document.getElementById('form-setor-titulo').textContent = 'Novo Setor';
+  document.getElementById('btn-cancelar-setor').classList.add('oculto');
 }
 
 async function deletarSetor(id, nome) {
   const ok = await confirmar(`Deletar o setor "${nome}"?`);
   if (!ok) return;
   await apiFetch(`/setores/${id}`, { method: 'DELETE' });
+  mostrarToast('Setor removido.', 'ok');
   listarSetores();
+  atualizarStats();
 }
 
 // ── TIPOS DE FÁBRICA ──────────────────────────────────────────────────────────
@@ -223,25 +267,38 @@ document.getElementById('form-fabrica').addEventListener('submit', async e => {
   const id = document.getElementById('fabrica-id').value;
   if (id) {
     await apiFetch(`/tipos-fabrica/${id}`, { method: 'PUT', headers: json(), body: JSON.stringify({ nome, descricao }) });
+    mostrarToast('Tipo de fábrica atualizado.', 'ok');
   } else {
     await apiFetch('/tipos-fabrica', { method: 'POST', headers: json(), body: JSON.stringify({ nome, descricao }) });
+    mostrarToast('Tipo de fábrica cadastrado.', 'ok');
   }
-  limpar('fabrica-id', 'fabrica-nome', 'fabrica-descricao');
+  cancelarEdicaoFabrica();
   await recarregarComPosicao(listarFabricas);
+  atualizarStats();
 });
 
 function editarFabrica(id, nome, descricao) {
   document.getElementById('fabrica-id').value        = id;
   document.getElementById('fabrica-nome').value      = nome;
   document.getElementById('fabrica-descricao').value = descricao;
+  document.getElementById('form-fabrica-titulo').textContent = 'Editar Tipo de Fábrica';
+  document.getElementById('btn-cancelar-fabrica').classList.remove('oculto');
   irParaForm('form-fabrica');
+}
+
+function cancelarEdicaoFabrica() {
+  limpar('fabrica-id', 'fabrica-nome', 'fabrica-descricao');
+  document.getElementById('form-fabrica-titulo').textContent = 'Novo Tipo de Fábrica';
+  document.getElementById('btn-cancelar-fabrica').classList.add('oculto');
 }
 
 async function deletarFabrica(id, nome) {
   const ok = await confirmar(`Deletar o tipo de fábrica "${nome}"?`);
   if (!ok) return;
   await apiFetch(`/tipos-fabrica/${id}`, { method: 'DELETE' });
+  mostrarToast('Tipo de fábrica removido.', 'ok');
   listarFabricas();
+  atualizarStats();
 }
 
 // ── FUNCIONÁRIOS ──────────────────────────────────────────────────────────────
@@ -253,7 +310,7 @@ async function carregarSetores() {
   }
 
   const selectForm = document.getElementById('func-setor');
-  selectForm.innerHTML = '<option value="">-- Setor --</option>' +
+  selectForm.innerHTML = '<option value="">— Setor —</option>' +
     data.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
 
   const selectFiltro = document.getElementById('filtro-func-setor');
@@ -306,7 +363,7 @@ async function listarFuncionarios() {
 
 function toggleDemissao() {
   const isDemitido = document.getElementById('func-status').value === 'DEMITIDO';
-  document.getElementById('func-demissao').classList.toggle('oculto', !isDemitido);
+  document.getElementById('grupo-demissao').classList.toggle('oculto', !isDemitido);
 }
 
 document.getElementById('form-funcionario').addEventListener('submit', async e => {
@@ -343,15 +400,15 @@ document.getElementById('form-funcionario').addEventListener('submit', async e =
   const id = document.getElementById('func-id').value;
   if (id) {
     await apiFetch(`/funcionarios/${id}`, { method: 'PUT', headers: json(), body: JSON.stringify(body) });
+    mostrarToast('Funcionário atualizado.', 'ok');
   } else {
     await apiFetch('/funcionarios', { method: 'POST', headers: json(), body: JSON.stringify(body) });
+    mostrarToast('Funcionário cadastrado.', 'ok');
   }
 
-  limpar('func-id', 'func-nome', 'func-cargo', 'func-admissao', 'func-demissao');
-  document.getElementById('func-status').value = 'ADMITIDO';
-  document.getElementById('func-setor').value  = '';
-  document.getElementById('func-demissao').classList.add('oculto');
+  cancelarEdicaoFunc();
   await recarregarComPosicao(listarFuncionarios);
+  atualizarStats();
 });
 
 async function editarFuncionario(id) {
@@ -368,15 +425,29 @@ async function editarFuncionario(id) {
   document.getElementById('func-demissao').value = f.dataDemissao ?? '';
   document.getElementById('func-setor').value    = f.setor ? f.setor.id : '';
   toggleDemissao();
+  document.getElementById('form-func-titulo').textContent = 'Editar Funcionário';
+  document.getElementById('btn-cancelar-func').classList.remove('oculto');
   irParaForm('form-funcionario');
+}
+
+function cancelarEdicaoFunc() {
+  limpar('func-id', 'func-nome', 'func-cargo', 'func-admissao', 'func-demissao');
+  document.getElementById('func-status').value = 'ADMITIDO';
+  document.getElementById('func-setor').value  = '';
+  document.getElementById('grupo-demissao').classList.add('oculto');
+  document.getElementById('form-func-titulo').textContent = 'Novo Funcionário';
+  document.getElementById('btn-cancelar-func').classList.add('oculto');
 }
 
 async function deletarFuncionario(id, nome) {
   const ok = await confirmar(`Deletar o funcionário "${nome}"?`);
   if (!ok) return;
   await apiFetch(`/funcionarios/${id}`, { method: 'DELETE' });
+  mostrarToast('Funcionário removido.', 'ok');
   listarFuncionarios();
+  atualizarStats();
 }
 
 // Carrega a primeira aba ao abrir
 listarSetores();
+atualizarStats();

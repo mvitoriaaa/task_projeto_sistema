@@ -317,3 +317,117 @@ tbody tr:hover { background: #f0f7ff; }
 .toast.aviso  { background: #f39c12; color: #fff; }
 .toast.ok     { background: #27ae60; color: #fff; }
 .toast-icone  { font-size: 1.1rem; flex-shrink: 0; }
+
+/* ── v6 — Layout profissional ─────────────────────────────── */
+
+/* Nav: ícones alinhados + lado direito */
+nav button { display: flex; align-items: center; gap: .4rem; }
+.nav-right  { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
+.nav-user-info {
+  display: flex; align-items: center; gap: .35rem;
+  color: #9aacb8; font-size: .82rem;
+  padding: .3rem .7rem; border-radius: 6px; white-space: nowrap;
+}
+.btn-sair { margin-left: 0 !important; }
+
+/* Área principal */
+.main-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 3rem;
+}
+.main-content .secao { padding: 0; }
+
+/* ── Cards de resumo ──────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.1rem 1.3rem;
+  display: flex; align-items: center; gap: .9rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  border-left: 4px solid transparent;
+  animation: fadeIn .35s ease;
+}
+.stat-card.stat-azul     { border-color: #3498db; }
+.stat-card.stat-verde    { border-color: #27ae60; }
+.stat-card.stat-vermelho { border-color: #e74c3c; }
+.stat-card.stat-slate    { border-color: #7f8c8d; }
+.stat-card.stat-roxo     { border-color: #8e44ad; }
+
+.stat-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.stat-azul .stat-icon     { background: #ebf5fb; color: #3498db; }
+.stat-verde .stat-icon    { background: #eafaf1; color: #27ae60; }
+.stat-vermelho .stat-icon { background: #fdf2f2; color: #e74c3c; }
+.stat-slate .stat-icon    { background: #f2f3f4; color: #7f8c8d; }
+.stat-roxo .stat-icon     { background: #f5eef8; color: #8e44ad; }
+
+.stat-num   { display: block; font-size: 1.65rem; font-weight: 700; color: #2c3e50; line-height: 1.1; }
+.stat-label { font-size: .75rem; color: #888; margin-top: .15rem; display: block; }
+
+/* ── Cabeçalho de seção ───────────────────────────────────── */
+.secao-header { margin-bottom: 1.1rem; }
+.secao-titulo { font-size: 1.3rem; color: #2c3e50; margin: 0 0 .2rem; }
+.secao-sub    { font-size: .82rem; color: #aaa; margin: 0; }
+
+/* ── Card ─────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 5px rgba(0,0,0,.08);
+  margin-bottom: 1.2rem;
+  overflow: hidden;
+}
+.card-header {
+  padding: .8rem 1.4rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-weight: 600; font-size: .9rem; color: #2c3e50;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap;
+}
+.card table  { box-shadow: none; border-radius: 0; }
+.card .vazio { padding: 1.8rem; }
+
+/* ── Formulários dentro de card ───────────────────────────── */
+.card form { margin-bottom: 0; padding: 1.2rem 1.4rem; }
+
+.form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: .85rem; align-items: end;
+}
+.form-inline {
+  display: flex !important;
+  gap: .85rem; align-items: flex-end; flex-wrap: wrap;
+}
+.form-group {
+  display: flex; flex-direction: column; gap: .28rem;
+}
+.form-group label {
+  font-size: .72rem; font-weight: 700;
+  color: #666; text-transform: uppercase; letter-spacing: .04em;
+}
+.form-group input,
+.form-group select { flex: none; min-width: unset; width: 100%; }
+
+.form-acoes { display: flex; gap: .5rem; align-items: center; }
+
+/* ── Filtro inline no card-header ─────────────────────────── */
+.filtro-inline { display: flex; gap: .5rem; flex-wrap: wrap; }
+.filtro-inline select { padding: .3rem .6rem; font-size: .82rem; min-width: 130px; flex: 1; }
+
+/* ── Modal ícone de aviso ─────────────────────────────────── */
+.modal-warn-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #fff8e1; color: #f39c12;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto .9rem;
+}

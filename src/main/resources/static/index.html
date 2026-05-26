@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema</title>
-  <link rel="stylesheet" href="style.css?v=3" />
+  <title>Sistema Industrial</title>
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
-  <!-- Toast container -->
   <div id="toast-container"></div>
 
   <!-- Modal de confirmação -->
   <div id="modal" class="modal-overlay oculto">
     <div class="modal-box">
+      <div class="modal-warn-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
       <p id="modal-texto"></p>
       <div class="modal-acoes">
         <button id="modal-sim" class="btn-deletar">Confirmar</button>
@@ -22,85 +24,239 @@
     </div>
   </div>
 
+  <!-- ── Nav ──────────────────────────────────────────────────── -->
   <nav>
     <div class="nav-logo">
-      <img src="logo_fabrica.jpg" width="48" height="48" alt="Logo" style="border-radius:10px;object-fit:cover;" />
+      <img src="logo_fabrica.jpg" width="38" height="38" alt="Logo" style="border-radius:8px;object-fit:cover;" />
       <span>Sistema Industrial</span>
     </div>
-    <button onclick="mostrarSecao('funcionarios', this)"         >Funcionários</button>
-    <button onclick="mostrarSecao('setores', this)"      class="ativo">Setores</button>
-    <button onclick="mostrarSecao('fabricas', this)"             >Tipos de Fábrica</button>
-    <button onclick="sair()" class="btn-sair">Sair</button>
+
+    <button onclick="mostrarSecao('funcionarios', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Funcionários
+    </button>
+
+    <button onclick="mostrarSecao('setores', this)" class="ativo">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Setores
+    </button>
+
+    <button onclick="mostrarSecao('fabricas', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+      Tipos de Fábrica
+    </button>
+
+    <div class="nav-right">
+      <div class="nav-user-info">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span id="nav-usuario"></span>
+      </div>
+      <button onclick="sair()" class="btn-sair">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sair
+      </button>
+    </div>
   </nav>
 
-  <!-- ── FUNCIONÁRIOS ─────────────────────────────────────────── -->
-  <section id="funcionarios" class="secao oculto">
-    <h1>Funcionários</h1>
-    <form id="form-funcionario">
-      <input type="hidden" id="func-id" />
-      <input type="text" id="func-nome"  placeholder="Nome"  />
-      <input type="text" id="func-cargo" placeholder="Cargo" />
-      <select id="func-status" onchange="toggleDemissao()">
-        <option value="ADMITIDO">Admitido</option>
-        <option value="DEMITIDO">Demitido</option>
-      </select>
-      <input type="date" id="func-admissao" title="Data de admissão" />
-      <input type="date" id="func-demissao" title="Data de demissão" class="oculto" />
-      <select id="func-setor">
-        <option value="">-- Setor --</option>
-      </select>
-      <button type="submit" class="btn-salvar">Salvar</button>
-    </form>
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <main class="main-content">
 
-    <div class="filtro-bar">
-      <select id="filtro-func-status" onchange="listarFuncionarios()">
-        <option value="">Todos os status</option>
-        <option value="ADMITIDO">Admitidos</option>
-        <option value="DEMITIDO">Demitidos</option>
-      </select>
-      <select id="filtro-func-setor" onchange="listarFuncionarios()">
-        <option value="">Todos os setores</option>
-      </select>
+    <!-- Cards de resumo -->
+    <div class="stats-grid">
+      <div class="stat-card stat-azul">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num" id="stat-total-func">—</span>
+          <span class="stat-label">Total de Funcionários</span>
+        </div>
+      </div>
+      <div class="stat-card stat-verde">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num" id="stat-admitidos">—</span>
+          <span class="stat-label">Admitidos</span>
+        </div>
+      </div>
+      <div class="stat-card stat-vermelho">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num" id="stat-demitidos">—</span>
+          <span class="stat-label">Demitidos</span>
+        </div>
+      </div>
+      <div class="stat-card stat-slate">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num" id="stat-setores">—</span>
+          <span class="stat-label">Setores</span>
+        </div>
+      </div>
+      <div class="stat-card stat-roxo">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-num" id="stat-fabricas">—</span>
+          <span class="stat-label">Tipos de Fábrica</span>
+        </div>
+      </div>
     </div>
 
-    <table>
-      <thead><tr><th>ID</th><th>Nome</th><th>Cargo</th><th>Status</th><th>Setor</th><th>Admissão</th><th>Ações</th></tr></thead>
-      <tbody id="tabela-funcionarios"></tbody>
-    </table>
-    <p id="msg-funcionarios" class="vazio oculto">Nenhum funcionário encontrado.</p>
-  </section>
+    <!-- ── FUNCIONÁRIOS ──────────────────────────────────────── -->
+    <section id="funcionarios" class="secao oculto">
+      <div class="secao-header">
+        <h2 class="secao-titulo">Funcionários</h2>
+        <p class="secao-sub">Gerencie o quadro de pessoal da fábrica</p>
+      </div>
 
-  <!-- ── SETORES ──────────────────────────────────────────────── -->
-  <section id="setores" class="secao">
-    <h1>Setores</h1>
-    <form id="form-setor">
-      <input type="hidden" id="setor-id" />
-      <input type="text" id="setor-nome" placeholder="Nome do setor" />
-      <button type="submit" class="btn-salvar">Salvar</button>
-    </form>
-    <table>
-      <thead><tr><th>ID</th><th>Nome</th><th>Ações</th></tr></thead>
-      <tbody id="tabela-setores"></tbody>
-    </table>
-    <p id="msg-setores" class="vazio oculto">Nenhum setor cadastrado.</p>
-  </section>
+      <div class="card">
+        <div class="card-header">
+          <span id="form-func-titulo">Novo Funcionário</span>
+        </div>
+        <form id="form-funcionario" class="form-grid">
+          <input type="hidden" id="func-id" />
+          <div class="form-group">
+            <label for="func-nome">Nome</label>
+            <input type="text" id="func-nome" placeholder="Nome completo" />
+          </div>
+          <div class="form-group">
+            <label for="func-cargo">Cargo</label>
+            <input type="text" id="func-cargo" placeholder="Cargo ou função" />
+          </div>
+          <div class="form-group">
+            <label for="func-status">Status</label>
+            <select id="func-status" onchange="toggleDemissao()">
+              <option value="ADMITIDO">Admitido</option>
+              <option value="DEMITIDO">Demitido</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="func-admissao">Data de Admissão</label>
+            <input type="date" id="func-admissao" />
+          </div>
+          <div class="form-group oculto" id="grupo-demissao">
+            <label for="func-demissao">Data de Demissão</label>
+            <input type="date" id="func-demissao" />
+          </div>
+          <div class="form-group">
+            <label for="func-setor">Setor</label>
+            <select id="func-setor">
+              <option value="">— Setor —</option>
+            </select>
+          </div>
+          <div class="form-acoes">
+            <button type="submit" class="btn-salvar">Salvar</button>
+            <button type="button" class="btn-cancelar oculto" id="btn-cancelar-func" onclick="cancelarEdicaoFunc()">Cancelar</button>
+          </div>
+        </form>
+      </div>
 
-  <!-- ── TIPOS DE FÁBRICA ─────────────────────────────────────── -->
-  <section id="fabricas" class="secao oculto">
-    <h1>Tipos de Fábrica</h1>
-    <form id="form-fabrica">
-      <input type="hidden" id="fabrica-id" />
-      <input type="text" id="fabrica-nome"      placeholder="Nome"      />
-      <input type="text" id="fabrica-descricao" placeholder="Descrição" />
-      <button type="submit" class="btn-salvar">Salvar</button>
-    </form>
-    <table>
-      <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Ações</th></tr></thead>
-      <tbody id="tabela-fabricas"></tbody>
-    </table>
-    <p id="msg-fabricas" class="vazio oculto">Nenhum tipo de fábrica cadastrado.</p>
-  </section>
+      <div class="card">
+        <div class="card-header">
+          <span>Lista de Funcionários</span>
+          <div class="filtro-inline">
+            <select id="filtro-func-status" onchange="listarFuncionarios()">
+              <option value="">Todos os status</option>
+              <option value="ADMITIDO">Admitidos</option>
+              <option value="DEMITIDO">Demitidos</option>
+            </select>
+            <select id="filtro-func-setor" onchange="listarFuncionarios()">
+              <option value="">Todos os setores</option>
+            </select>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Nome</th><th>Cargo</th><th>Status</th><th>Setor</th><th>Admissão</th><th>Ações</th></tr>
+          </thead>
+          <tbody id="tabela-funcionarios"></tbody>
+        </table>
+        <p id="msg-funcionarios" class="vazio oculto">Nenhum funcionário encontrado.</p>
+      </div>
+    </section>
 
-  <script src="app.js?v=3"></script>
+    <!-- ── SETORES ───────────────────────────────────────────── -->
+    <section id="setores" class="secao">
+      <div class="secao-header">
+        <h2 class="secao-titulo">Setores</h2>
+        <p class="secao-sub">Cadastre os setores da organização</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span id="form-setor-titulo">Novo Setor</span>
+        </div>
+        <form id="form-setor" class="form-inline">
+          <input type="hidden" id="setor-id" />
+          <div class="form-group" style="flex:1;min-width:200px">
+            <label for="setor-nome">Nome do setor</label>
+            <input type="text" id="setor-nome" placeholder="Ex: Produção, Logística..." />
+          </div>
+          <div class="form-acoes">
+            <button type="submit" class="btn-salvar">Salvar</button>
+            <button type="button" class="btn-cancelar oculto" id="btn-cancelar-setor" onclick="cancelarEdicaoSetor()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span>Lista de Setores</span></div>
+        <table>
+          <thead><tr><th>#</th><th>Nome</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-setores"></tbody>
+        </table>
+        <p id="msg-setores" class="vazio oculto">Nenhum setor cadastrado.</p>
+      </div>
+    </section>
+
+    <!-- ── TIPOS DE FÁBRICA ──────────────────────────────────── -->
+    <section id="fabricas" class="secao oculto">
+      <div class="secao-header">
+        <h2 class="secao-titulo">Tipos de Fábrica</h2>
+        <p class="secao-sub">Classifique os tipos de unidade fabril</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span id="form-fabrica-titulo">Novo Tipo de Fábrica</span>
+        </div>
+        <form id="form-fabrica" class="form-grid">
+          <input type="hidden" id="fabrica-id" />
+          <div class="form-group">
+            <label for="fabrica-nome">Nome</label>
+            <input type="text" id="fabrica-nome" placeholder="Nome do tipo" />
+          </div>
+          <div class="form-group">
+            <label for="fabrica-descricao">Descrição</label>
+            <input type="text" id="fabrica-descricao" placeholder="Descrição opcional" />
+          </div>
+          <div class="form-acoes">
+            <button type="submit" class="btn-salvar">Salvar</button>
+            <button type="button" class="btn-cancelar oculto" id="btn-cancelar-fabrica" onclick="cancelarEdicaoFabrica()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span>Lista de Tipos</span></div>
+        <table>
+          <thead><tr><th>#</th><th>Nome</th><th>Descrição</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-fabricas"></tbody>
+        </table>
+        <p id="msg-fabricas" class="vazio oculto">Nenhum tipo de fábrica cadastrado.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js?v=6"></script>
 </body>
 </html>
