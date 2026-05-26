@@ -127,13 +127,6 @@ body { font-family: sans-serif; background: #f4f4f4; color: #333; }
   text-align: center;
   animation: fadeIn .3s ease;
 }
-
-.login-erro {
-  margin-top: 1rem;
-  color: #e74c3c;
-  font-size: .9rem;
-  animation: fadeIn .3s ease;
-}
 .link-esqueci {
   color: #3498db;
   font-size: .88rem;
